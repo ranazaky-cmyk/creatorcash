@@ -247,42 +247,44 @@ function calculateSummary() {
 // ============================================================================
 
 function calculateForecast() {
-    const now = new Date();
+    // Group entries by calendar month (YYYY-MM)
+    const monthlyMap = {};
     
-    // Get last 3 full months (not including current month)
-    const monthlyTotals = [];
-    
-    for (let i = 1; i <= 3; i++) {
-        const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const targetMonth = targetDate.getMonth();
-        const targetYear = targetDate.getFullYear();
+    incomes.forEach(income => {
+        // Parse YYYY-MM-DD as local date (no timezone shift)
+        const [year, month, day] = income.date.split('-').map(Number);
+        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
         
-        const monthIncomes = incomes.filter(income => {
-            const incomeDate = new Date(income.date);
-            return incomeDate.getMonth() === targetMonth && incomeDate.getFullYear() === targetYear;
-        });
-        
-        const monthTotal = monthIncomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
-        monthlyTotals.push(monthTotal);
-    }
+        if (!monthlyMap[monthKey]) {
+            monthlyMap[monthKey] = 0;
+        }
+        monthlyMap[monthKey] += parseFloat(income.amount);
+    });
     
-    // Need at least 2 months of data for meaningful forecast
-    if (monthlyTotals.filter(t => t > 0).length < 2) {
+    // Get distinct months sorted descending (most recent first)
+    const monthKeys = Object.keys(monthlyMap).sort().reverse();
+    
+    // Debug line: show detected months
+    const debugMonths = monthKeys.length > 0 ? monthKeys.join(', ') : 'none';
+    
+    // Need at least 2 distinct months for meaningful forecast
+    if (monthKeys.length < 2) {
         document.getElementById('forecast-amount').textContent = '—';
-        document.getElementById('forecast-range').textContent = 'Need 2+ months of data';
+        document.getElementById('forecast-range').textContent = `Need 2+ months of data (${debugMonths})`;
         return;
     }
     
-    // Calculate average
-    const validTotals = monthlyTotals.filter(t => t > 0);
-    const average = validTotals.reduce((sum, val) => sum + val, 0) / validTotals.length;
+    // Calculate average from most recent 2-3 months
+    const recentMonths = monthKeys.slice(0, Math.min(3, monthKeys.length));
+    const recentTotals = recentMonths.map(key => monthlyMap[key]);
+    const average = recentTotals.reduce((sum, val) => sum + val, 0) / recentTotals.length;
     
     // Calculate ±15% range
     const lowerBound = average * 0.85;
     const upperBound = average * 1.15;
     
     document.getElementById('forecast-amount').textContent = `$${average.toFixed(2)}`;
-    document.getElementById('forecast-range').textContent = `$${lowerBound.toFixed(2)} - $${upperBound.toFixed(2)}`;
+    document.getElementById('forecast-range').textContent = `$${lowerBound.toFixed(2)} - $${upperBound.toFixed(2)} • Months: ${debugMonths}`;
 }
 
 // ============================================================================
