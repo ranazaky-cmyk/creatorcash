@@ -555,3 +555,22 @@ supabase.auth.onAuthStateChange((event, session) => {
         showAuth();
     }
 });
+
+// Privacy modal
+const privacyLink = document.getElementById("privacyLink");
+const privacyModal = document.getElementById("privacyModal");
+const closePrivacy = document.getElementById("closePrivacy");
+
+if (privacyLink) {
+  privacyLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    privacyModal.classList.remove("hidden");
+  });
+}
+
+if (closePrivacy) {
+  closePrivacy.addEventListener("click", () => {
+    privacyModal.classList.add("hidden");
+  });
+}
+
