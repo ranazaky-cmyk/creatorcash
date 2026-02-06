@@ -573,4 +573,26 @@ if (closePrivacy) {
     privacyModal.classList.add("hidden");
   });
 }
+// Forgot password
+const forgotLink = document.getElementById("forgotPassword");
+
+if (forgotLink) {
+  forgotLink.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    const email = prompt("Enter your email for password reset:");
+
+    if (!email) return;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    });
+
+    if (error) {
+      alert("Error sending reset email");
+    } else {
+      alert("Password reset email sent!");
+    }
+  });
+}
 
