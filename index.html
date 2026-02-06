@@ -1,10 +1,137 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>CreatorCash</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorCash - Track Your Income</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>CreatorCash</h1>
-  <p>Loading...</p>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+        <div class="container">
+            <div class="auth-card">
+                <h1 class="logo">💰 CreatorCash</h1>
+                <p class="tagline">Track your creator income, calculate taxes</p>
+                
+                <!-- Login Form -->
+                <div id="login-form" class="form-section">
+                    <h2>Login</h2>
+                    <form id="loginForm">
+                        <input type="email" id="login-email" placeholder="Email" required>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button type="submit" class="btn-primary">Login</button>
+                    </form>
+                    <p class="toggle-link">Don't have an account? <a href="#" id="show-signup">Sign up</a></p>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signup-form" class="form-section hidden">
+                    <h2>Create Account</h2>
+                    <form id="signupForm">
+                        <input type="email" id="signup-email" placeholder="Email" required>
+                        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" required minlength="6">
+                        <button type="submit" class="btn-primary">Sign Up</button>
+                    </form>
+                    <p class="toggle-link">Already have an account? <a href="#" id="show-login">Login</a></p>
+                </div>
+
+                <div id="auth-message" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboard-screen" class="screen hidden">
+        <!-- Header -->
+        <div class="header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="logo">💰 CreatorCash</h1>
+                    <div class="header-actions">
+                        <span id="user-email" class="user-email"></span>
+                        <button id="logout-btn" class="btn-secondary">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card">
+                    <div class="card-label">This Month Income</div>
+                    <div class="card-value" id="total-income">$0.00</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">
+                        Tax Set-Aside
+                        <input type="number" id="tax-rate" value="25" min="0" max="100" step="1">%
+                    </div>
+                    <div class="card-value" id="tax-amount">$0.00</div>
+                </div>
+                <div class="card card-highlight">
+                    <div class="card-label">Safe to Spend</div>
+                    <div class="card-value" id="safe-spend">$0.00</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="add-income-btn" class="btn-primary">+ Add Income</button>
+                <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
+                <button id="load-demo-btn" class="btn-demo">Load Demo Data</button>
+            </div>
+
+            <!-- Add Income Form -->
+            <div id="add-income-form" class="card form-card hidden">
+                <h3>Add Income Entry</h3>
+                <form id="incomeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="income-date">Date</label>
+                            <input type="date" id="income-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="income-amount">Amount ($)</label>
+                            <input type="number" id="income-amount" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="income-source">Source</label>
+                            <input type="text" id="income-source" placeholder="e.g., Nike, Amazon" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="income-category">Category</label>
+                            <select id="income-category" required>
+                                <option value="">Select...</option>
+                                <option value="Brand Deal">Brand Deal</option>
+                                <option value="Affiliate">Affiliate</option>
+                                <option value="UGC">UGC</option>
+                                <option value="Sponsorship">Sponsorship</option>
+                                <option value="Coaching">Coaching</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Entry</button>
+                        <button type="button" id="cancel-income-btn" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Income List -->
+            <div class="card">
+                <h3>Income History</h3>
+                <div id="income-list" class="income-list">
+                    <p class="empty-state">No income entries yet. Add your first entry!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
 </body>
 </html>
