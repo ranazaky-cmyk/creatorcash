@@ -1,4 +1,3 @@
-
 // ============================================================================
 // PASTE YOUR SUPABASE CREDENTIALS HERE:
 // ============================================================================
@@ -237,6 +236,171 @@ function calculateSummary() {
     document.getElementById('total-income').textContent = `$${totalIncome.toFixed(2)}`;
     document.getElementById('tax-amount').textContent = `$${taxAmount.toFixed(2)}`;
     document.getElementById('safe-spend').textContent = `$${safeToSpend.toFixed(2)}`;
+
+    // Calculate new features
+    calculateForecast();
+    calculateHealthScore(taxRate);
+}
+
+// ============================================================================
+// CASH FLOW FORECAST
+// ============================================================================
+
+function calculateForecast() {
+    const now = new Date();
+    
+    // Get last 3 full months (not including current month)
+    const monthlyTotals = [];
+    
+    for (let i = 1; i <= 3; i++) {
+        const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const targetMonth = targetDate.getMonth();
+        const targetYear = targetDate.getFullYear();
+        
+        const monthIncomes = incomes.filter(income => {
+            const incomeDate = new Date(income.date);
+            return incomeDate.getMonth() === targetMonth && incomeDate.getFullYear() === targetYear;
+        });
+        
+        const monthTotal = monthIncomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+        monthlyTotals.push(monthTotal);
+    }
+    
+    // Need at least 2 months of data for meaningful forecast
+    if (monthlyTotals.filter(t => t > 0).length < 2) {
+        document.getElementById('forecast-amount').textContent = '—';
+        document.getElementById('forecast-range').textContent = 'Need 2+ months of data';
+        return;
+    }
+    
+    // Calculate average
+    const validTotals = monthlyTotals.filter(t => t > 0);
+    const average = validTotals.reduce((sum, val) => sum + val, 0) / validTotals.length;
+    
+    // Calculate ±15% range
+    const lowerBound = average * 0.85;
+    const upperBound = average * 1.15;
+    
+    document.getElementById('forecast-amount').textContent = `$${average.toFixed(2)}`;
+    document.getElementById('forecast-range').textContent = `$${lowerBound.toFixed(2)} - $${upperBound.toFixed(2)}`;
+}
+
+// ============================================================================
+// FINANCIAL HEALTH SCORE
+// ============================================================================
+
+function calculateHealthScore(taxRate) {
+    if (incomes.length < 3) {
+        document.getElementById('health-score').textContent = '—';
+        document.getElementById('health-explanation').textContent = 'Need 3+ entries to calculate';
+        return;
+    }
+    
+    let score = 0;
+    const factors = [];
+    
+    // 1. Income Consistency (30 points) - lower variance is better
+    const monthlyTotals = getMonthlyTotals();
+    if (monthlyTotals.length >= 2) {
+        const variance = calculateVariance(monthlyTotals);
+        const mean = monthlyTotals.reduce((a, b) => a + b, 0) / monthlyTotals.length;
+        const cv = mean > 0 ? Math.sqrt(variance) / mean : 1; // coefficient of variation
+        
+        const consistencyScore = Math.max(0, Math.min(30, 30 - (cv * 30)));
+        score += consistencyScore;
+        
+        if (consistencyScore >= 20) {
+            factors.push('Consistent income');
+        } else if (consistencyScore >= 10) {
+            factors.push('Moderate variance');
+        } else {
+            factors.push('High variance');
+        }
+    }
+    
+    // 2. Growth Trend (25 points) - positive growth is good
+    if (monthlyTotals.length >= 3) {
+        const recent = monthlyTotals.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
+        const older = monthlyTotals.slice(-2).reduce((a, b) => a + b, 0) / 2;
+        
+        let growthScore = 0;
+        if (older > 0) {
+            const growthRate = (recent - older) / older;
+            if (growthRate > 0.2) {
+                growthScore = 25;
+                factors.push('Strong growth');
+            } else if (growthRate > 0) {
+                growthScore = 15;
+                factors.push('Positive trend');
+            } else if (growthRate > -0.1) {
+                growthScore = 10;
+                factors.push('Stable');
+            } else {
+                growthScore = 5;
+                factors.push('Declining');
+            }
+        }
+        score += growthScore;
+    }
+    
+    // 3. Savings Rate (25 points) - tax set-aside percentage
+    const savingsScore = Math.min(25, (taxRate * 100));
+    score += savingsScore;
+    
+    if (taxRate >= 0.25) {
+        factors.push('Good savings');
+    } else if (taxRate >= 0.15) {
+        factors.push('Moderate savings');
+    } else {
+        factors.push('Low savings');
+    }
+    
+    // 4. Revenue Diversification (20 points) - more categories is better
+    const categories = new Set(incomes.map(i => i.category));
+    const diversificationScore = Math.min(20, categories.size * 5);
+    score += diversificationScore;
+    
+    if (categories.size >= 4) {
+        factors.push('Diversified');
+    } else if (categories.size >= 2) {
+        factors.push('Some diversity');
+    } else {
+        factors.push('Single source');
+    }
+    
+    // Cap at 100
+    score = Math.min(100, Math.round(score));
+    
+    // Update UI
+    document.getElementById('health-score').textContent = score;
+    document.getElementById('health-explanation').textContent = factors.join(' • ');
+}
+
+function getMonthlyTotals() {
+    const now = new Date();
+    const monthlyMap = {};
+    
+    incomes.forEach(income => {
+        const date = new Date(income.date);
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        
+        if (!monthlyMap[key]) {
+            monthlyMap[key] = 0;
+        }
+        monthlyMap[key] += parseFloat(income.amount);
+    });
+    
+    // Sort by date descending and return values
+    return Object.keys(monthlyMap)
+        .sort((a, b) => b.localeCompare(a))
+        .map(key => monthlyMap[key]);
+}
+
+function calculateVariance(values) {
+    if (values.length === 0) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
+    return squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
 }
 
 // Update calculations when tax rate changes
